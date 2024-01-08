@@ -43,4 +43,4 @@ def preprocess_image(image_path):
     # normalise image
     image_normalised = normalise_image(image_hu)
 
-    return normalise_image
+    return image_normalised
