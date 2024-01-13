@@ -13,15 +13,15 @@ def process_images(image_dir, output_dir):
             if image.endswith('.png'):
                 image_path = os.path.join(sub_directory, image)
                 print("processing", image_path)
-                preprocessed_image = preprocess_image(image_path)
 
-                if preprocess_image is not None:
-                    rel_path = os.path.relpath(sub_directory, image_dir)
-                    output_subdir = os.path.join(output_dir, rel_path)
+                rel_path = os.path.relpath(sub_directory, image_dir)
+                output_subdir = os.path.join(output_dir, rel_path)
 
-                    if not os.path.exists(output_subdir):
-                        os.makedirs(output_subdir)
-                    argument_list.append((image_path, output_subdir))
+                if not os.path.exists(output_subdir):
+                    os.makedirs(output_subdir)
+
+                argument_list.append((image_path, output_subdir))
+
     results = parallel_process(save_process_image, argument_list)
     for result in results:
         print(result)
@@ -36,9 +36,6 @@ def save_process_image(image_path, output_subdir):
         processed_image.save(output_path)
         return f"processed image saved to {output_path}"
         
-
-
-
 
 if __name__ == '__main__':
     current_directory = os.getcwd()
