@@ -1,7 +1,5 @@
 import os
-import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
+from process_image import save_process_image
 from preprocess_pipeline import preprocess_image
 from multiprocess import parallel_process
 
@@ -25,17 +23,6 @@ def process_images(image_dir, output_dir):
     results = parallel_process(save_process_image, argument_list)
     for result in results:
         print(result)
-
-
-def save_process_image(image_path, output_subdir):
-    preprocessed_image = preprocess_image(image_path)
-    if preprocessed_image is not None:
-        image = os.path.basename(image_path)
-        output_path = os.path.join(output_subdir, image)
-        processed_image = Image.fromarray((preprocessed_image * 255).astype('uint8'))
-        processed_image.save(output_path)
-        return f"processed image saved to {output_path}"
-        
 
 if __name__ == '__main__':
     current_directory = os.getcwd()
