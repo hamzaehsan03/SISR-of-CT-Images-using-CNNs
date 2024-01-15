@@ -1,3 +1,5 @@
 DeepLesion/
 ProcessedImages/
+ProcessedImagesa/
 *.pyc
+*.png
