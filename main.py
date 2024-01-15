@@ -1,6 +1,5 @@
 import os
 from process_image import save_process_image
-from preprocess_pipeline import preprocess_image
 from multiprocess import parallel_process
 
 def process_images(image_dir, output_dir):

@@ -27,20 +27,3 @@ def normalise_image(houndsfield_units, min=-1000, max=400):
 
     return normalised
 
-
-def preprocess_image(image_path):
-    
-    # check image format
-    try:
-        check_image(image_path)
-    except ValueError:
-        print ("debug")
-        return None
-    
-    # scale intensity
-    image_hu = intensity_scale(image_path)
-
-    # normalise image
-    image_normalised = normalise_image(image_hu)
-
-    return image_normalised
