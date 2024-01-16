@@ -16,18 +16,17 @@ def preprocess_image(image_path):
 
     return image_normalised
 
-def save_process_image(image_path, output_dir):
+def save_process_image(image_path, output_dir_hr, output_dir_lr, scale_factor=4):
     preprocessed_image = preprocess_image(image_path)
     if preprocessed_image is not None:
         filename = os.path.basename(os.path.dirname(image_path)) + '_' + os.path.basename(image_path)
-        output_path = os.path.join(output_dir, filename)
 
-        # convert array back to an image
+        output_path_hr = os.path.join(output_dir_hr, filename)
         processed_image = Image.fromarray((preprocessed_image * 255).astype('uint8'))
-        processed_image.save(output_path)
-        return f"processed image saved to {output_path}"
+        processed_image.save(output_path_hr)
 
-def create_lr_image(hr_image_path, scale_factor = 4):
-    with Image.open(hr_image_path) as image:
-        lr_image = image.resize(image.width // scale_factor, image.height // scale_factor)
-        return lr_image
+        output_path_lr = os.path.join(output_dir_lr, filename)
+        lr_image = processed_image.resize((processed_image.width // scale_factor, processed_image.height // scale_factor))
+        lr_image.save(output_path_lr)
+
+        return f"HR image saved to {output_path_hr}, LR image saved to {output_path_lr}"
