@@ -26,3 +26,8 @@ def save_process_image(image_path, output_dir):
         processed_image = Image.fromarray((preprocessed_image * 255).astype('uint8'))
         processed_image.save(output_path)
         return f"processed image saved to {output_path}"
+
+def create_lr_image(hr_image_path, scale_factor = 4):
+    with Image.open(hr_image_path) as image:
+        lr_image = image.resize(image.width // scale_factor, image.height // scale_factor)
+        return lr_image
