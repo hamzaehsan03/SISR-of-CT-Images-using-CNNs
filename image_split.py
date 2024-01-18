@@ -19,7 +19,7 @@ def parallel_copy(files, src_dir, dst_dir):
 
 def main():
 
-    current_directory = os.cwd()
+    current_directory = os.getcwd()
     hr_dir = os.path.join(current_directory, "ProcessedImages\\HR")
     lr_dir = os.path.join(current_directory, "ProcessedImages\\LR")
 
