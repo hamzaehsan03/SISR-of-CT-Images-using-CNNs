@@ -2,6 +2,7 @@ import torch
 import os
 from torchvision import transforms, models
 from torch.utils.data import Dataset, DataLoader
+from torch.cuda.amp import grad_scaler, autocast
 import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
@@ -97,7 +98,7 @@ def main():
 
     # Add checks for CUDA compatability, prefer GPU over CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    num_cpu = os.cpu_count()
+    scaler = grad_scaler()
 
     current_directory = os.getcwd()
     hr_dir = os.path.join(current_directory, "ProcessedImages\\HR\\Train")
@@ -135,26 +136,27 @@ def main():
 
     for epoch in range(num_epochs):
         running_loss = 0.0
-
+        
         for batch_idx, (hr_images, lr_images) in enumerate(train_load):
             lr_images = lr_images.to(device)
             hr_images = hr_images.to(device)
+            with autocast():
+                # forward pass
+                sr_images = model(lr_images)
 
-            # forward pass
-            sr_images = model(lr_images)
+                # compute losses
+                # print("Shape of SR images:", sr_images.shape)
+                # print("Shape of HR images:", hr_images.shape)
 
-            # compute losses
-            # print("Shape of SR images:", sr_images.shape)
-            # print("Shape of HR images:", hr_images.shape)
-
-            mse_loss = mse_loss_fn(sr_images, hr_images)
-            perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
-            total_loss = alpha * mse_loss + beta * perceptual_loss
+                mse_loss = mse_loss_fn(sr_images, hr_images)
+                perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
+                total_loss = alpha * mse_loss + beta * perceptual_loss
 
             # backward pass and optimization
             optimiser.zero_grad()
-            total_loss.backward()
-            optimiser.step()
+            scaler.scale(total_loss).backward()
+            scaler.step(optimiser)
+            scaler.update()
 
             running_loss += total_loss.item()
 
