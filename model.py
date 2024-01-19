@@ -26,15 +26,15 @@ class SISRDataSet(Dataset):
         hr_image = Image.open(hr_image_dir).convert('L')
         lr_image = Image.open(lr_image_dir).convert('L')
 
-        print(f"Loading HR image: {hr_image_dir}, Size: {hr_image.size}")
-        print(f"Loading LR image: {lr_image_dir}, Size: {lr_image.size}")
+        # print(f"Loading HR image: {hr_image_dir}, Size: {hr_image.size}")
+        # print(f"Loading LR image: {lr_image_dir}, Size: {lr_image.size}")
 
 
         if self.transform:
             hr_image = self.transform(hr_image)
             lr_image = self.transform(lr_image)
-            print(f"Transformed HR Image Shape: {hr_image.shape}")
-            print(f"Transformed LR Image Shape: {lr_image.shape}")
+            # print(f"Transformed HR Image Shape: {hr_image.shape}")
+            # print(f"Transformed LR Image Shape: {lr_image.shape}")
         
         
         return hr_image, lr_image
@@ -104,7 +104,7 @@ def main():
     lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Train")
 
     train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir)
-    train_load = DataLoader(train_dataset, batch_size=16, shuffle=False, num_workers=8)
+    train_load = DataLoader(train_dataset, batch_size=40, shuffle=False, num_workers=12)
 
     model = SISRCNN()
     criterion = nn.MSELoss()
@@ -127,10 +127,10 @@ def main():
     beta = 0.001
 
     num_epochs = 10 
-    print_every_n_batches = 10  # Print information every n batches
+    print_every_n_batches = 100  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
-    print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
-    print("HR Image Shape:", hr_image.shape)  # [1, 512, 512]
+    # print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
+    # print("HR Image Shape:", hr_image.shape)  # [1, 512, 512]
 
 
     for epoch in range(num_epochs):
@@ -144,8 +144,8 @@ def main():
             sr_images = model(lr_images)
 
             # compute losses
-            print("Shape of SR images:", sr_images.shape)
-            print("Shape of HR images:", hr_images.shape)
+            # print("Shape of SR images:", sr_images.shape)
+            # print("Shape of HR images:", hr_images.shape)
 
             mse_loss = mse_loss_fn(sr_images, hr_images)
             perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
