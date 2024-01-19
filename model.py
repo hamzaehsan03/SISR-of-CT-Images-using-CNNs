@@ -8,6 +8,8 @@ import torch.optim as optim
 from PIL import Image
 import matplotlib.pyplot as plt
 
+#TD: Find the best lr value, add validation, optimise further without VGG19, tune hyperparameters
+
 class SISRDataSet(Dataset):
     def __init__(self, hr_dir, lr_dir, transform=None):
         self.hr_dir = hr_dir
@@ -44,21 +46,42 @@ class SISRDataSet(Dataset):
 class SISRCNN(nn.Module):
     def __init__(self):
         super(SISRCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=9, padding=4)
-        self.conv2 = nn.Conv2d(64, 32, kernel_size=1, padding=0)
-        # Upsample LR images to match HR
-        self.upsample1 = nn.ConvTranspose2d(32, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.upsample2 = nn.ConvTranspose2d(32, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
 
-        self.conv3 = nn.Conv2d(32, 1, kernel_size=5, padding=2)
         self.relu = nn.ReLU()
+        self.scale_factor = 4
+        
+        # First block
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
+        self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
+
+        # Second block
+        self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv9 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+        
+
+       
 
     def forward(self, x):
+        # First block
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
-        x = self.relu(self.upsample1(x))
-        x = self.relu(self.upsample2(x))
-        x = self.conv3(x)
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.conv4(x))
+        x = self.relu(self.conv5(x))
+        x = self.pixel_shuffle(self.conv6(x))
+
+        # Second block
+        x = self.relu(self.conv7(x))
+        x = self.relu(self.conv8(x))
+        x = self.relu(self.conv9(x))
+        x = self.conv10(x)
         return x
 
 class PerceptualLoss(nn.Module):
@@ -109,7 +132,7 @@ def main():
 
     model = SISRCNN()
     criterion = nn.MSELoss()
-    optimiser = optim.Adam(model.parameters(), lr=0.001)
+    optimiser = optim.Adam(model.parameters(), lr=0.0001)
     model = model.to(device)
 
     # Convert VGG19 to use 1 layer instead of RGB
@@ -131,7 +154,7 @@ def main():
     beta = 0.001
 
     num_epochs = 10 
-    print_every_n_batches = 400  # Print information every n batches
+    print_every_n_batches = 100  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
     # print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
     # print("HR Image Shape:", hr_image.shape)  # [1, 512, 512]
