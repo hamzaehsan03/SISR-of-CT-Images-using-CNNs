@@ -66,23 +66,24 @@ class SISRCNN(nn.Module):
         self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
         
 
-       
-
     def forward(self, x):
-        # First block
+
+        f1_output = self.f1_compute(x)
+        return self.f2_compute(f1_output)
+    
+    def f1_compute(self, x):
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
         x = self.relu(self.conv4(x))
         x = self.relu(self.conv5(x))
-        x = self.pixel_shuffle(self.conv6(x))
-
-        # Second block
-        x = self.relu(self.conv7(x))
+        return self.pixel_shuffle(self.conv6(x))
+    
+    def f2_compute(self, f1_output):
+        x = self.relu(self.conv7(f1_output))
         x = self.relu(self.conv8(x))
         x = self.relu(self.conv9(x))
-        x = self.conv10(x)
-        return x
+        return self.conv10(x)
 
 class PerceptualLoss(nn.Module):
     def __init__(self, feature_extractor):
