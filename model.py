@@ -2,7 +2,7 @@ import torch
 import os
 from torchvision import transforms, models
 from torch.utils.data import Dataset, DataLoader
-from torch.cuda.amp import grad_scaler, autocast
+from torch.cuda.amp import GradScaler, autocast
 import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
@@ -98,14 +98,14 @@ def main():
 
     # Add checks for CUDA compatability, prefer GPU over CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    scaler = grad_scaler()
+    scaler = GradScaler()
 
     current_directory = os.getcwd()
     hr_dir = os.path.join(current_directory, "ProcessedImages\\HR\\Train")
     lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Train")
 
     train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir)
-    train_load = DataLoader(train_dataset, batch_size=40, shuffle=False, num_workers=12)
+    train_load = DataLoader(train_dataset, batch_size=16, shuffle=False, num_workers=12)
 
     model = SISRCNN()
     criterion = nn.MSELoss()
@@ -113,6 +113,7 @@ def main():
     model = model.to(device)
 
     # Convert VGG19 to use 1 layer instead of RGB
+    '''
     model_vgg19 = models.vgg19(pretrained=True).features 
     first_conv_layer = model_vgg19[0]
     model_vgg19[0] = nn.Conv2d(1, first_conv_layer.out_channels, 
@@ -123,12 +124,14 @@ def main():
     model_vgg19.eval()
 
     perceptual_loss_fn = PerceptualLoss(model_vgg19)
+   
+    '''
     mse_loss_fn = nn.MSELoss()
     alpha = 1.0
     beta = 0.001
 
     num_epochs = 10 
-    print_every_n_batches = 100  # Print information every n batches
+    print_every_n_batches = 400  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
     # print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
     # print("HR Image Shape:", hr_image.shape)  # [1, 512, 512]
@@ -149,8 +152,9 @@ def main():
                 # print("Shape of HR images:", hr_images.shape)
 
                 mse_loss = mse_loss_fn(sr_images, hr_images)
-                perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
-                total_loss = alpha * mse_loss + beta * perceptual_loss
+                #perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
+                total_loss = mse_loss
+                    # alpha * mse_loss + beta * perceptual_loss
 
             # backward pass and optimization
             optimiser.zero_grad()
@@ -171,15 +175,16 @@ def main():
                 lr_image, hr_image = lr_image.to(device), hr_image.to(device)
                 with torch.no_grad():
                     sr_image = model(lr_image)
-
-                # Visualize the first image in the batch
-                show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu())
+                    
 
             save_epoch_checkpoint({
                 'epoch': epoch + 1,
                 'state_dict': model.state_dict(),
                 'optimizer': optimiser.state_dict()
             }, filename=f"checkpoint_epoch_{epoch+1}.pth.tar")
+        
+        # Visualize the first image in the batch
+        show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu())
 
     print("Training completed")
 

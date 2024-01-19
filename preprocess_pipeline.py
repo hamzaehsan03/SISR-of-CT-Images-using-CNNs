@@ -17,21 +17,41 @@ from PIL import Image
 def process_folders(hr_folder, lr_folder):
     # Process HR folder
     for filename in os.listdir(hr_folder):
-        if filename.lower().endswith('.png'):
+        if filename.lower().endswith('.png') or filename.lower().endswith('.jpg'):
             file_path = os.path.join(hr_folder, filename)
-            with Image.open(file_path) as img:
-                if img.size != (512, 512):
+            size_ok = False
+            try:
+                with Image.open(file_path) as img:
+                    size_ok = img.size == (512, 512)
+            except IOError:
+                print(f"Error opening {file_path}. Skipping.")
+                continue
+
+            if not size_ok:
+                try:
                     os.remove(file_path)
                     print(f"Deleted {file_path} as its dimensions were not 512x512.")
+                except OSError as e:
+                    print(f"Error deleting {file_path}: {e}")
 
     # Process LR folder
     for filename in os.listdir(lr_folder):
-        if filename.lower().endswith('.png'):
+        if filename.lower().endswith('.png') or filename.lower().endswith('.jpg'):
             file_path = os.path.join(lr_folder, filename)
-            with Image.open(file_path) as img:
-                if img.size != (128, 128):
+            size_ok = False
+            try:
+                with Image.open(file_path) as img:
+                    size_ok = img.size == (128, 128)
+            except IOError:
+                print(f"Error opening {file_path}. Skipping.")
+                continue
+
+            if not size_ok:
+                try:
                     os.remove(file_path)
                     print(f"Deleted {file_path} as its dimensions were not 128x128.")
+                except OSError as e:
+                    print(f"Error deleting {file_path}: {e}")
 
 # pixel values are stored as integers, however these can to be mapped back to HU due to the image data containing the HU
 # this is through the images being 16 bit unsigned, and an offset of 32768 allows for the HU to be found
