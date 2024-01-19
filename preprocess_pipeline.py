@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from PIL import Image
 
@@ -6,10 +7,31 @@ def check_image(image_path, file_extension='png'):
     if not image_path.lower().endswith(file_extension.lower()):
         raise ValueError("Image format is incorrect")
     
-    with Image.open(image_path) as img:
-        if img.size != (512, 512):
-            raise ValueError ("Image dimensions are not 512x512")
-    return
+    # with Image.open(image_path) as img:
+    #     if (img.size != (512, 512) or img.size != (128, 128)):
+    #         raise ValueError ("Image dimensions are not 512x512 or 128x128")
+    # return
+import os
+from PIL import Image
+
+def process_folders(hr_folder, lr_folder):
+    # Process HR folder
+    for filename in os.listdir(hr_folder):
+        if filename.lower().endswith('.png'):
+            file_path = os.path.join(hr_folder, filename)
+            with Image.open(file_path) as img:
+                if img.size != (512, 512):
+                    os.remove(file_path)
+                    print(f"Deleted {file_path} as its dimensions were not 512x512.")
+
+    # Process LR folder
+    for filename in os.listdir(lr_folder):
+        if filename.lower().endswith('.png'):
+            file_path = os.path.join(lr_folder, filename)
+            with Image.open(file_path) as img:
+                if img.size != (128, 128):
+                    os.remove(file_path)
+                    print(f"Deleted {file_path} as its dimensions were not 128x128.")
 
 # pixel values are stored as integers, however these can to be mapped back to HU due to the image data containing the HU
 # this is through the images being 16 bit unsigned, and an offset of 32768 allows for the HU to be found

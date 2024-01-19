@@ -1,5 +1,6 @@
 import os
 from process_image import save_process_image
+from preprocess_pipeline import process_folders
 from multiprocess import parallel_process
 
 def process_images(image_dir, output_dir_hr, output_dir_lr):
@@ -27,4 +28,4 @@ if __name__ == '__main__':
     output_directory_hr = os.path.join(current_directory, "ProcessedImages\\HR")
     output_directory_lr = os.path.join(current_directory, "ProcessedImages\\LR")
     process_images(image_directory, output_directory_hr, output_directory_lr)
-
+    process_folders(output_directory_hr, output_directory_lr)
