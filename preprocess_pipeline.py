@@ -5,6 +5,10 @@ from PIL import Image
 def check_image(image_path, file_extension='png'):
     if not image_path.lower().endswith(file_extension.lower()):
         raise ValueError("Image format is incorrect")
+    
+    with Image.open(image_path) as img:
+        if img.size != (512, 512):
+            raise ValueError ("Image dimensions are not 512x512")
     return
 
 # pixel values are stored as integers, however these can to be mapped back to HU due to the image data containing the HU
