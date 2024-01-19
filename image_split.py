@@ -38,7 +38,7 @@ def main():
         parallel_copy(hr_set_files, hr_dir, hr_set_dir)
         
         # Parallel copy LR images
-        lr_set_files = [os.path.basename(f.replace(hr_dir, lr_dir)) for f in file_set]
+        lr_set_files = [f.replace(hr_dir, lr_dir) for f in file_set]
         parallel_copy(lr_set_files, lr_dir, lr_set_dir)
 
 if __name__ == '__main__':
