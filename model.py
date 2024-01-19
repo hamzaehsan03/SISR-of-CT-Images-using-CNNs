@@ -1,5 +1,6 @@
 import torch
 import os
+import random
 from torchvision import transforms, models
 from torch.utils.data import Dataset, DataLoader
 from torch.cuda.amp import GradScaler, autocast
@@ -8,15 +9,25 @@ import torch.optim as optim
 from PIL import Image
 import matplotlib.pyplot as plt
 
-#TD: Find the best lr value, add validation, optimise further without VGG19, tune hyperparameters
+
+# TD: Fix artifacting in SR images 
+#       -> lr scheduler, higher epochs, refine loss function (vgg based?), add more layers to cnn, regularisation (dropout/weight decay)
+#       -> experiment with larger models, try fitting images better (based on patient as opposed to flat dirs)
+
+def gaussian_blur(image, probability = 0.5, max_dev = 0.5):
+    if random.random() < probability:
+        std_dev = random.uniform(0, max_dev)
+        return transforms.functional.gaussian_blur(image, kernel_size=3, sigma=std_dev)
+    return image
 
 class SISRDataSet(Dataset):
-    def __init__(self, hr_dir, lr_dir, transform=None):
+    def __init__(self, hr_dir, lr_dir, transform=None, training=False):
         self.hr_dir = hr_dir
         self.lr_dir = lr_dir
         self.hr_images = os.listdir(hr_dir)
         self.lr_images = os.listdir(lr_dir)
         self.transform = transforms.ToTensor()
+        self.training = training
 
     def __len__(self):
         return len(self.lr_images)
@@ -38,6 +49,9 @@ class SISRDataSet(Dataset):
             lr_image = self.transform(lr_image)
             # print(f"Transformed HR Image Shape: {hr_image.shape}")
             # print(f"Transformed LR Image Shape: {lr_image.shape}")
+
+            if self.training:
+                lr_image = gaussian_blur(lr_image)
         
         
         return hr_image, lr_image
@@ -128,7 +142,7 @@ def main():
     hr_dir = os.path.join(current_directory, "ProcessedImages\\HR\\Train")
     lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Train")
 
-    train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir)
+    train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir, training=True)
     train_load = DataLoader(train_dataset, batch_size=16, shuffle=False, num_workers=12)
 
     model = SISRCNN()
@@ -251,3 +265,4 @@ if __name__ == '__main__':
     # print("Number of LR images:", len(train_dataset.lr_images))
     # print("Number of HR images:", len(train_dataset.hr_images))
     # print("Dataset length:", len(train_dataset))
+
