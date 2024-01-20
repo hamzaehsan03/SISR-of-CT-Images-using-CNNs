@@ -68,17 +68,35 @@ class SISRCNN(nn.Module):
         
         # First block
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(32)
+
         self.conv3 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(32)
+
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn4 = nn.BatchNorm2d(32)
+        
         self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn5 = nn.BatchNorm2d(32)
+
         self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
+        self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
+
         self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
 
         # Second block
         self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn7 = nn.BatchNorm2d(32)
+
         self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn8 = nn.BatchNorm2d(32)
+        
         self.conv9 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn9 = nn.BatchNorm2d(32)
+
         self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
         
 
@@ -88,17 +106,18 @@ class SISRCNN(nn.Module):
         return self.f2_compute(f1_output)
     
     def f1_compute(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.relu(self.conv3(x))
-        x = self.relu(self.conv4(x))
-        x = self.relu(self.conv5(x))
-        return self.pixel_shuffle(self.conv6(x))
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.relu(self.bn4(self.conv4(x)))
+        x = self.relu(self.bn5(self.conv5(x)))
+
+        return self.pixel_shuffle(self.bn6(self.conv6(x)))
     
     def f2_compute(self, f1_output):
-        x = self.relu(self.conv7(f1_output))
-        x = self.relu(self.conv8(x))
-        x = self.relu(self.conv9(x))
+        x = self.relu(self.bn7(self.conv7(f1_output)))
+        x = self.relu(self.bn8(self.conv8(x)))
+        x = self.relu(self.bn9(self.conv9(x)))
         return self.conv10(x)
 
 class PerceptualLoss(nn.Module):
@@ -178,24 +197,23 @@ def main():
     model = model.to(device)
 
     mse_loss_fn = nn.MSELoss()
-    vgg19 = models.vgg19(pretrained=True).features[:10].eval()  
-    first_conv_layer = vgg19[0]
-    new_first_layer = nn.Conv2d(1, first_conv_layer.out_channels, 
-                            kernel_size=first_conv_layer.kernel_size, 
-                            stride=first_conv_layer.stride, 
-                            padding=first_conv_layer.padding)
+    # vgg19 = models.vgg19(pretrained=True).features[:10].eval()  
+    # first_conv_layer = vgg19[0]
+    # new_first_layer = nn.Conv2d(1, first_conv_layer.out_channels, 
+    #                         kernel_size=first_conv_layer.kernel_size, 
+    #                         stride=first_conv_layer.stride, 
+    #                         padding=first_conv_layer.padding)
 
-# Replace the first layer
-    vgg19[0] = new_first_layer
-    vgg19 = vgg19.to('cuda' if torch.cuda.is_available() else 'cpu')  
-    perceptual_loss_fn = PerceptualLoss(vgg19)
+    # vgg19[0] = new_first_layer
+    # vgg19 = vgg19.to('cuda' if torch.cuda.is_available() else 'cpu')  
+    # perceptual_loss_fn = PerceptualLoss(vgg19)
     #edge_loss_fn = EdgeLoss()
     #ssim_loss_fn = SSIMLoss()
     
     lambda_mse = 1.0
-    lambda_perceptual = 0.1
-    lambda_edge = 0.1
-    lambda_ssim = 0.1
+    # lambda_perceptual = 0.1
+    # lambda_edge = 0.1
+    # lambda_ssim = 0.1
 
     num_epochs = 10 
     print_every_n_batches = 100  # Print information every n batches
@@ -216,10 +234,10 @@ def main():
 
                 sr_images = model(lr_images)
                 mse_loss = mse_loss_fn(sr_images, hr_images)
-                perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
+                #perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
                 #edge_loss = edge_loss_fn(sr_images, hr_images)
                 #ssim_loss = ssim_loss_fn(sr_images, hr_images)
-                total_loss = lambda_mse * mse_loss + lambda_perceptual * perceptual_loss # + lambda_edge * edge_loss
+                total_loss = lambda_mse * mse_loss # + lambda_perceptual * perceptual_loss + lambda_edge * edge_loss
                     # alpha * mse_loss + beta * perceptual_loss
 
             # backward pass and optimization
