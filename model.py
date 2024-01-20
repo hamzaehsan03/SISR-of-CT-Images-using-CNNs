@@ -4,6 +4,7 @@ import random
 from torchvision import transforms, models
 from torch.utils.data import Dataset, DataLoader
 from torch.cuda.amp import GradScaler, autocast
+from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
@@ -141,13 +142,19 @@ def main():
     current_directory = os.getcwd()
     hr_dir = os.path.join(current_directory, "ProcessedImages\\HR\\Train")
     lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Train")
+    val_hr_dir = os.path.join(current_directory, "ProcessedImages\\HR\\Validation")
+    val_lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Validation")
 
     train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir, training=True)
     train_load = DataLoader(train_dataset, batch_size=16, shuffle=False, num_workers=12)
 
+    validation_dataset = SISRDataSet(hr_dir=val_hr_dir, lr_dir=val_lr_dir, transform=transforms.ToTensor(), training=False)
+    validation_load = DataLoader(validation_dataset, batch_size=16, shuffle=False, num_workers=12)
+
     model = SISRCNN()
-    criterion = nn.MSELoss()
-    optimiser = optim.Adam(model.parameters(), lr=0.0001)
+    optimiser = optim.Adam(model.parameters(), lr=0.001)
+    scheduler = ReduceLROnPlateau(optimiser, 'min', patience=10, factor=0.1, verbose=True)
+    #scheduler = StepLR(optimiser, step_size=10, gamma=0.1)
     model = model.to(device)
 
     # Convert VGG19 to use 1 layer instead of RGB
@@ -177,20 +184,15 @@ def main():
 
     for epoch in range(num_epochs):
         running_loss = 0.0
-        
+        model.train()
+
         for batch_idx, (hr_images, lr_images) in enumerate(train_load):
             lr_images = lr_images.to(device)
             hr_images = hr_images.to(device)
             with autocast():
-                # forward pass
+
                 sr_images = model(lr_images)
-
-                # compute losses
-                # print("Shape of SR images:", sr_images.shape)
-                # print("Shape of HR images:", hr_images.shape)
-
                 mse_loss = mse_loss_fn(sr_images, hr_images)
-                #perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
                 total_loss = mse_loss
                     # alpha * mse_loss + beta * perceptual_loss
 
@@ -209,21 +211,36 @@ def main():
                 running_loss = 0.0
                 lr_image, hr_image = lr_images[0:1], hr_images[0:1]
 
-                # Move to device and perform inference
                 lr_image, hr_image = lr_image.to(device), hr_image.to(device)
                 with torch.no_grad():
                     sr_image = model(lr_image)
+            
+        model.eval()
+        validation_loss = 0.0
+        with torch.no_grad(): 
+            for hr_images, lr_images in validation_load:
+                lr_images = lr_images.to(device)
+                hr_images = hr_images.to(device)
+                sr_images = model(lr_images)
+                loss = mse_loss_fn(sr_images, hr_images)
+                validation_loss += loss.item()
+            validation_loss /= len(validation_load)
+            print(f'Validation Loss: {validation_loss:.4f}')
+
+        scheduler.step(validation_loss)
                     
-
-            save_epoch_checkpoint({
-                'epoch': epoch + 1,
-                'state_dict': model.state_dict(),
-                'optimizer': optimiser.state_dict()
-            }, filename=f"checkpoint_epoch_{epoch+1}.pth.tar")
-        
-        # Visualize the first image in the batch
         show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu())
+        save_epoch_checkpoint({
+            'epoch': epoch + 1,
+            'state_dict': model.state_dict(),
+            'optimizer': optimiser.state_dict(),
+            'validation_loss': validation_loss
+        }, filename=f"checkpoint_epoch_{epoch+1}.pth.tar")
 
+        model.train()
+        #scheduler.step()
+        
+    
     print("Training completed")
 
 if __name__ == '__main__':
