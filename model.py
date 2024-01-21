@@ -68,36 +68,43 @@ class SISRCNN(nn.Module):
         
         # First block
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
+        #self.bn1 = nn.BatchNorm2d(32)
 
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(32)
+        #self.bn2 = nn.BatchNorm2d(32)
 
         self.conv3 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn3 = nn.BatchNorm2d(32)
+        #self.bn3 = nn.BatchNorm2d(32)
 
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn4 = nn.BatchNorm2d(32)
+        #self.bn4 = nn.BatchNorm2d(32)
         
         self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn5 = nn.BatchNorm2d(32)
+        #self.bn5 = nn.BatchNorm2d(32)
 
-        self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
-        self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
+        self.conv6 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+
+        self.conv9 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
+        #self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
 
         self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
 
         # Second block
-        self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn7 = nn.BatchNorm2d(32)
+        self.conv10 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        #self.bn7 = nn.BatchNorm2d(32)
 
-        self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn8 = nn.BatchNorm2d(32)
+        self.conv11 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        #self.bn8 = nn.BatchNorm2d(32)
         
-        self.conv9 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn9 = nn.BatchNorm2d(32)
+        self.conv12 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        #self.bn9 = nn.BatchNorm2d(32)
+        self.conv13 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv14 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.conv15 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
 
-        self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+        self.conv16 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
         
 
     def forward(self, x):
@@ -106,19 +113,34 @@ class SISRCNN(nn.Module):
         return self.f2_compute(f1_output)
     
     def f1_compute(self, x):
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
-        x = self.relu(self.bn4(self.conv4(x)))
-        x = self.relu(self.bn5(self.conv5(x)))
-
-        return self.pixel_shuffle(self.bn6(self.conv6(x)))
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.conv4(x))
+        x = self.relu(self.conv5(x))
+        x = self.relu(self.conv6(x))
+        x = self.relu(self.conv7(x))
+        x = self.relu(self.conv8(x))
+        # x = self.relu(self.bn1(self.conv1(x)))
+        # x = self.relu(self.bn2(self.conv2(x)))
+        # x = self.relu(self.bn3(self.conv3(x)))
+        # x = self.relu(self.bn4(self.conv4(x)))
+        # x = self.relu(self.bn5(self.conv5(x)))
+        return self.pixel_shuffle(self.conv9(x))
+        #return self.pixel_shuffle(self.bn6(self.conv6(x)))
     
     def f2_compute(self, f1_output):
-        x = self.relu(self.bn7(self.conv7(f1_output)))
-        x = self.relu(self.bn8(self.conv8(x)))
-        x = self.relu(self.bn9(self.conv9(x)))
-        return self.conv10(x)
+        x = self.relu(self.conv10(f1_output))
+        #x = self.relu(self.bn7(self.conv7(f1_output)))
+        x = self.relu(self.conv11(x))
+        x = self.relu(self.conv12(x))
+        x = self.relu(self.conv13(x))
+        x = self.relu(self.conv14(x))
+        x = self.relu(self.conv15(x))
+        
+        # x = self.relu(self.bn8(self.conv8(x)))
+        # x = self.relu(self.bn9(self.conv9(x)))
+        return self.conv16(x)
 
 class PerceptualLoss(nn.Module):
     def __init__(self, feature_extractor):
@@ -209,13 +231,13 @@ def main():
     val_lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Validation")
 
     train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir, training=True)
-    train_load = DataLoader(train_dataset, batch_size=16, shuffle=False, num_workers=12, persistent_workers=True)
+    train_load = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12, persistent_workers=True)
 
     validation_dataset = SISRDataSet(hr_dir=val_hr_dir, lr_dir=val_lr_dir, transform=transforms.ToTensor(), training=False)
-    validation_load = DataLoader(validation_dataset, batch_size=16, shuffle=False, num_workers=12)
+    validation_load = DataLoader(validation_dataset, batch_size=16, shuffle=True, num_workers=12)
 
     model = SISRCNN()
-    optimiser = optim.Adam(model.parameters(), lr=0.001)
+    optimiser = optim.Adam(model.parameters(), lr=0.0001)
 #     model, optimser, start_epoch, validation_loss_min = load_checkpoint(
 #     model, 
 #     optimiser, 
