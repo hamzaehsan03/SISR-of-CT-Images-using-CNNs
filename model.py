@@ -160,19 +160,43 @@ def main():
         tensor = tensor.squeeze()
         return transforms.ToPILImage()(tensor)
     
-    def show_images(lr_image, hr_image, sr_image):
+    def show_images(lr_image, hr_image, sr_image, epoch, output_dir='./output_images'):
         lr_image, hr_image, sr_image = [tensor_to_pil(image) for image in [lr_image, hr_image, sr_image]]
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        lr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_lr.png'))
+        hr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_hr.png'))
+        sr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_sr.png'))
 
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-        axes[0].imshow(lr_image, cmap='gray')
-        axes[0].set_title('Low-Resolution')
-        axes[1].imshow(hr_image, cmap='gray')
-        axes[1].set_title('High-Resolution')
-        axes[2].imshow(sr_image, cmap='gray')
-        axes[2].set_title('Super-Resolved')
-        for ax in axes:
-            ax.axis('off')
-        plt.show()
+        # fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        # axes[0].imshow(lr_image, cmap='gray')
+        # axes[0].set_title('Low-Resolution')
+        # axes[1].imshow(hr_image, cmap='gray')
+        # axes[1].set_title('High-Resolution')
+        # axes[2].imshow(sr_image, cmap='gray')
+        # axes[2].set_title('Super-Resolved')
+        # for ax in axes:
+        #     ax.axis('off')
+        # plt.show()
+    
+    # def load_checkpoint(model, optimiser, filename='checkpoint.pth.tar', device='cuda'):
+    #     start_epoch = 0
+    #     validation_loss_min = float('inf')  # It's better to start with the highest possible loss
+
+    #     if os.path.isfile(filename):
+    #         print(f"Loading checkpoint '{filename}'")
+    #         checkpoint = torch.load(filename, map_location=device)  # Ensure the checkpoint is loaded to the correct device
+    #         start_epoch = checkpoint['epoch']
+    #         validation_loss_min = checkpoint.get('validation_loss', validation_loss_min)
+    #         model.load_state_dict(checkpoint['state_dict'])
+    #         optimiser.load_state_dict(checkpoint['optimizer'])
+    #         print(f"Loaded checkpoint '{filename}' (epoch {checkpoint['epoch']})")
+    #         # Move the model to the device after loading the checkpoint
+    #         model.to(device)
+    #     else:
+    #         print(f"No checkpoint found at '{filename}'")
+        
+    #     return model, optimiser, start_epoch, validation_loss_min
 
     # Add checks for CUDA compatability, prefer GPU over CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -192,6 +216,13 @@ def main():
 
     model = SISRCNN()
     optimiser = optim.Adam(model.parameters(), lr=0.001)
+#     model, optimser, start_epoch, validation_loss_min = load_checkpoint(
+#     model, 
+#     optimiser, 
+#     filename='checkpoint_epoch_10.pth.tar',
+#     device=device
+# )
+
     scheduler = ReduceLROnPlateau(optimiser, 'min', patience=10, factor=0.1, verbose=True)
     #scheduler = StepLR(optimiser, step_size=10, gamma=0.1)
     model = model.to(device)
@@ -215,7 +246,7 @@ def main():
     # lambda_edge = 0.1
     # lambda_ssim = 0.1
 
-    num_epochs = 10 
+    num_epochs = 20 
     print_every_n_batches = 100  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
     # print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
@@ -258,6 +289,7 @@ def main():
                 lr_image, hr_image = lr_image.to(device), hr_image.to(device)
                 with torch.no_grad():
                     sr_image = model(lr_image)
+                
             
         model.eval()
         validation_loss = 0.0
@@ -273,13 +305,14 @@ def main():
 
         scheduler.step(validation_loss)
                     
-        show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu())
+        
         save_epoch_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
             'optimizer': optimiser.state_dict(),
             'validation_loss': validation_loss
         }, filename=f"checkpoint_epoch_{epoch+1}.pth.tar")
+        show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu(), epoch)
 
         model.train()
         #scheduler.step()
