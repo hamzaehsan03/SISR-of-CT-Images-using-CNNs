@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 from torch.nn import functional
 import torch.nn as nn
 import torch.optim as optim
+import pytorch_ssim
 from PIL import Image
 import matplotlib.pyplot as plt
 
@@ -62,85 +63,51 @@ class SISRDataSet(Dataset):
 class SISRCNN(nn.Module):
     def __init__(self):
         super(SISRCNN, self).__init__()
-
         self.relu = nn.ReLU()
         self.scale_factor = 4
         
         # First block
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        #self.bn1 = nn.BatchNorm2d(32)
-
+        self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn2 = nn.BatchNorm2d(32)
-
+        self.bn2 = nn.BatchNorm2d(32)
         self.conv3 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn3 = nn.BatchNorm2d(32)
-
+        self.bn3 = nn.BatchNorm2d(32)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn4 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(32)
         
         self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn5 = nn.BatchNorm2d(32)
-
-        self.conv6 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-
-        self.conv9 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
-        #self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
-
+        self.bn5 = nn.BatchNorm2d(32)
+        self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
+        self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
         self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
-
         # Second block
-        self.conv10 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn7 = nn.BatchNorm2d(32)
-
-        self.conv11 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn8 = nn.BatchNorm2d(32)
+        self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn7 = nn.BatchNorm2d(32)
+        self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn8 = nn.BatchNorm2d(32)
         
-        self.conv12 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        #self.bn9 = nn.BatchNorm2d(32)
-        self.conv13 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.conv14 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.conv15 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-
-        self.conv16 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
+        self.conv9 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
+        self.bn9 = nn.BatchNorm2d(32)
+        self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
         
-
     def forward(self, x):
-
         f1_output = self.f1_compute(x)
         return self.f2_compute(f1_output)
     
     def f1_compute(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.relu(self.conv3(x))
-        x = self.relu(self.conv4(x))
-        x = self.relu(self.conv5(x))
-        x = self.relu(self.conv6(x))
-        x = self.relu(self.conv7(x))
-        x = self.relu(self.conv8(x))
-        # x = self.relu(self.bn1(self.conv1(x)))
-        # x = self.relu(self.bn2(self.conv2(x)))
-        # x = self.relu(self.bn3(self.conv3(x)))
-        # x = self.relu(self.bn4(self.conv4(x)))
-        # x = self.relu(self.bn5(self.conv5(x)))
-        return self.pixel_shuffle(self.conv9(x))
-        #return self.pixel_shuffle(self.bn6(self.conv6(x)))
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.relu(self.bn4(self.conv4(x)))
+        x = self.relu(self.bn5(self.conv5(x)))
+        return self.pixel_shuffle(self.bn6(self.conv6(x)))
     
     def f2_compute(self, f1_output):
-        x = self.relu(self.conv10(f1_output))
-        #x = self.relu(self.bn7(self.conv7(f1_output)))
-        x = self.relu(self.conv11(x))
-        x = self.relu(self.conv12(x))
-        x = self.relu(self.conv13(x))
-        x = self.relu(self.conv14(x))
-        x = self.relu(self.conv15(x))
-        
-        # x = self.relu(self.bn8(self.conv8(x)))
-        # x = self.relu(self.bn9(self.conv9(x)))
-        return self.conv16(x)
+        x = self.relu(self.bn7(self.conv7(f1_output)))
+        x = self.relu(self.bn8(self.conv8(x)))
+        x = self.relu(self.bn9(self.conv9(x)))
+        return self.conv10(x)
 
 class PerceptualLoss(nn.Module):
     def __init__(self, feature_extractor):
@@ -153,25 +120,6 @@ class PerceptualLoss(nn.Module):
         input_features = self.feature_extractor(input)
         target_features = self.feature_extractor(target)
         return nn.functional.mse_loss(input_features, target_features)
-
-
-
-# class EdgeLoss(nn.Module):
-#     def __init__(self):
-#         super(EdgeLoss, self).__init__()
-#         self.sobel = nn.Sobel()
-#     def forward(self, input, target):
-#         input_edges = self.sobel(input)
-#         target_edges = self.sobel(target)
-#         return functional.mse_loss(input_edges, target_edges)
-
-#TD: IMPLEMENT AN SSIM FUNCTION
-
-# class SSIMLoss(torch.SSIM):
-#     def forward(self, input, target):
-#         return 1 - super(SSIMLoss, self).forward(input, target)
-
-
 
 def main():
 
@@ -189,7 +137,13 @@ def main():
         lr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_lr.png'))
         hr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_hr.png'))
         sr_image.save(os.path.join(output_dir, f'epoch_{str(epoch)}_sr.png'))
-
+    
+    def psnr_loss(output, target, max_pixel=1.0):
+        mse = torch.mean((output - target) ** 2)
+        if mse == 0:
+            return torch.tensor(float('inf'))
+        return 20 * torch.log10(max_pixel / torch.sqrt(mse))
+    
         # fig, axes = plt.subplots(1, 3, figsize=(15, 5))
         # axes[0].imshow(lr_image, cmap='gray')
         # axes[0].set_title('Low-Resolution')
@@ -245,35 +199,20 @@ def main():
 #     device=device
 # )
 
-    scheduler = ReduceLROnPlateau(optimiser, 'min', patience=10, factor=0.1, verbose=True)
+    scheduler = ReduceLROnPlateau(optimiser, 'min', patience=5, factor=0.1, verbose=True)
     #scheduler = StepLR(optimiser, step_size=10, gamma=0.1)
     model = model.to(device)
 
     mse_loss_fn = nn.MSELoss()
-    # vgg19 = models.vgg19(pretrained=True).features[:10].eval()  
-    # first_conv_layer = vgg19[0]
-    # new_first_layer = nn.Conv2d(1, first_conv_layer.out_channels, 
-    #                         kernel_size=first_conv_layer.kernel_size, 
-    #                         stride=first_conv_layer.stride, 
-    #                         padding=first_conv_layer.padding)
-
-    # vgg19[0] = new_first_layer
-    # vgg19 = vgg19.to('cuda' if torch.cuda.is_available() else 'cpu')  
-    # perceptual_loss_fn = PerceptualLoss(vgg19)
-    #edge_loss_fn = EdgeLoss()
-    #ssim_loss_fn = SSIMLoss()
-    
+    #ssim_loss_fn = pytorch_ssim.SSIM()
+    ssim_module = pytorch_ssim.SSIM(window_size = 11)
     lambda_mse = 1.0
-    # lambda_perceptual = 0.1
-    # lambda_edge = 0.1
-    # lambda_ssim = 0.1
+    lambda_psnr = 0.05
+    lambda_ssim = 0.5
 
     num_epochs = 20 
     print_every_n_batches = 100  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
-    # print("LR Image Shape:", lr_image.shape)  # [1, 128, 128]
-    # print("HR Image Shape:", hr_image.shape)  # [1, 512, 512]
-
 
     for epoch in range(num_epochs):
         running_loss = 0.0
@@ -287,10 +226,10 @@ def main():
 
                 sr_images = model(lr_images)
                 mse_loss = mse_loss_fn(sr_images, hr_images)
-                #perceptual_loss = perceptual_loss_fn(sr_images, hr_images)
-                #edge_loss = edge_loss_fn(sr_images, hr_images)
-                #ssim_loss = ssim_loss_fn(sr_images, hr_images)
-                total_loss = lambda_mse * mse_loss # + lambda_perceptual * perceptual_loss + lambda_edge * edge_loss
+                psnr_loss_value = psnr_loss(sr_images, hr_images)
+                #ssim_loss_value = 1 - ssim_module(sr_images, hr_images)
+
+                total_loss = lambda_mse * mse_loss + lambda_psnr * psnr_loss_value# + lambda_ssim + ssim_loss_value
                     # alpha * mse_loss + beta * perceptual_loss
 
             # backward pass and optimization
