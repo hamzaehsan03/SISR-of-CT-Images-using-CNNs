@@ -16,7 +16,7 @@ def preprocess_image(image_path):
 
     return image_normalised
 
-def save_process_image(image_path, output_dir_hr, output_dir_lr, scale_factor=4):
+def save_process_image(image_path, output_dir_hr, output_dir_lr, scale_factor=2):
     preprocessed_image = preprocess_image(image_path)
     if preprocessed_image is not None:
         filename = os.path.basename(os.path.dirname(image_path)) + '_' + os.path.basename(image_path)

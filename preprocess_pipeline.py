@@ -41,7 +41,7 @@ def process_folders(hr_folder, lr_folder):
             size_ok = False
             try:
                 with Image.open(file_path) as img:
-                    size_ok = img.size == (128, 128)
+                    size_ok = img.size == (256, 256)
             except IOError:
                 print(f"Error opening {file_path}. Skipping.")
                 continue

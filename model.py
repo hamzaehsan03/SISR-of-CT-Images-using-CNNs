@@ -64,7 +64,7 @@ class SISRCNN(nn.Module):
     def __init__(self):
         super(SISRCNN, self).__init__()
         self.relu = nn.ReLU()
-        self.scale_factor = 4
+        self.scale_factor = 2
         
         # First block
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
@@ -79,7 +79,7 @@ class SISRCNN(nn.Module):
         self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
         #self.bn5 = nn.BatchNorm2d(32)
         self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
-        #self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
+       # self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
         self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
         # Second block
         self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
@@ -202,7 +202,7 @@ def main():
     validation_load = DataLoader(validation_dataset, batch_size=16, shuffle=True, num_workers=12)
 
     model = SISRCNN()
-    optimiser = optim.Adam(model.parameters(), lr=0.001)
+    optimiser = optim.Adam(model.parameters(), lr=0.0001)
 #     model, optimser, start_epoch, validation_loss_min = load_checkpoint(
 #     model, 
 #     optimiser, 
@@ -218,11 +218,11 @@ def main():
     #ssim_loss_fn = pytorch_ssim.SSIM()
     #ssim_module = pytorch_ssim.SSIM(window_size = 11)
     lambda_mse = 1.0
-    #lambda_psnr = 0.05
+    lambda_psnr = 0.5
     #lambda_ssim = 0.5
 
     num_epochs = 20 
-    print_every_n_batches = 10  # Print information every n batches
+    print_every_n_batches = 100  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
 
     for epoch in range(num_epochs):
