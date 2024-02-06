@@ -68,27 +68,27 @@ class SISRCNN(nn.Module):
         
         # First block
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
+        #self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(32)
+        #self.bn2 = nn.BatchNorm2d(32)
         self.conv3 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn3 = nn.BatchNorm2d(32)
+        #self.bn3 = nn.BatchNorm2d(32)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn4 = nn.BatchNorm2d(32)
+        #self.bn4 = nn.BatchNorm2d(32)
         
         self.conv5 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn5 = nn.BatchNorm2d(32)
+        #self.bn5 = nn.BatchNorm2d(32)
         self.conv6 = nn.Conv2d(32, 32 * (self.scale_factor ** 2), kernel_size=3, padding=1)
-        self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
+        #self.bn6 = nn.BatchNorm2d(32 * (self.scale_factor ** 2))
         self.pixel_shuffle = nn.PixelShuffle(self.scale_factor)
         # Second block
         self.conv7 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn7 = nn.BatchNorm2d(32)
+        #self.bn7 = nn.BatchNorm2d(32)
         self.conv8 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn8 = nn.BatchNorm2d(32)
+        #self.bn8 = nn.BatchNorm2d(32)
         
         self.conv9 = nn.Conv2d(32, 32, kernel_size=3, padding=1)
-        self.bn9 = nn.BatchNorm2d(32)
+        #self.bn9 = nn.BatchNorm2d(32)
         self.conv10 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
         
     def forward(self, x):
@@ -96,17 +96,28 @@ class SISRCNN(nn.Module):
         return self.f2_compute(f1_output)
     
     def f1_compute(self, x):
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
-        x = self.relu(self.bn4(self.conv4(x)))
-        x = self.relu(self.bn5(self.conv5(x)))
-        return self.pixel_shuffle(self.bn6(self.conv6(x)))
+
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.relu(self.conv3(x))
+        x = self.relu(self.conv4(x))
+        x = self.relu(self.conv5(x))
+        return self.pixel_shuffle(self.conv6(x))
+        # x = self.relu(self.bn1(self.conv1(x)))
+        # x = self.relu(self.bn2(self.conv2(x)))
+        # x = self.relu(self.bn3(self.conv3(x)))
+        # x = self.relu(self.bn4(self.conv4(x)))
+        # x = self.relu(self.bn5(self.conv5(x)))
+        # return self.pixel_shuffle(self.bn6(self.conv6(x)))
     
     def f2_compute(self, f1_output):
-        x = self.relu(self.bn7(self.conv7(f1_output)))
-        x = self.relu(self.bn8(self.conv8(x)))
-        x = self.relu(self.bn9(self.conv9(x)))
+        x = self.relu(self.conv7(f1_output))
+        x = self.relu(self.conv8(x))
+        x = self.relu(self.conv9(x))
+
+        # x = self.relu(self.bn7(self.conv7(f1_output)))
+        # x = self.relu(self.bn8(self.conv8(x)))
+        # x = self.relu(self.bn9(self.conv9(x)))
         return self.conv10(x)
 
 class PerceptualLoss(nn.Module):
@@ -185,13 +196,13 @@ def main():
     val_lr_dir = os.path.join(current_directory, "ProcessedImages\\LR\\Validation")
 
     train_dataset = SISRDataSet(hr_dir=hr_dir, lr_dir=lr_dir, training=True)
-    train_load = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12, persistent_workers=True)
+    train_load = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=4, persistent_workers=True)
 
     validation_dataset = SISRDataSet(hr_dir=val_hr_dir, lr_dir=val_lr_dir, transform=transforms.ToTensor(), training=False)
     validation_load = DataLoader(validation_dataset, batch_size=16, shuffle=True, num_workers=12)
 
     model = SISRCNN()
-    optimiser = optim.Adam(model.parameters(), lr=0.0001)
+    optimiser = optim.Adam(model.parameters(), lr=0.001)
 #     model, optimser, start_epoch, validation_loss_min = load_checkpoint(
 #     model, 
 #     optimiser, 
@@ -205,13 +216,13 @@ def main():
 
     mse_loss_fn = nn.MSELoss()
     #ssim_loss_fn = pytorch_ssim.SSIM()
-    ssim_module = pytorch_ssim.SSIM(window_size = 11)
+    #ssim_module = pytorch_ssim.SSIM(window_size = 11)
     lambda_mse = 1.0
-    lambda_psnr = 0.05
-    lambda_ssim = 0.5
+    #lambda_psnr = 0.05
+    #lambda_ssim = 0.5
 
     num_epochs = 20 
-    print_every_n_batches = 100  # Print information every n batches
+    print_every_n_batches = 10  # Print information every n batches
     hr_image, lr_image = train_dataset[0]
 
     for epoch in range(num_epochs):
@@ -229,7 +240,7 @@ def main():
                 psnr_loss_value = psnr_loss(sr_images, hr_images)
                 #ssim_loss_value = 1 - ssim_module(sr_images, hr_images)
 
-                total_loss = lambda_mse * mse_loss + lambda_psnr * psnr_loss_value# + lambda_ssim + ssim_loss_value
+                total_loss = lambda_mse * mse_loss #+ lambda_psnr * psnr_loss_value# + lambda_ssim + ssim_loss_value
                     # alpha * mse_loss + beta * perceptual_loss
 
             # backward pass and optimization
@@ -240,7 +251,7 @@ def main():
 
             running_loss += total_loss.item()
 
-            if (batch_idx + 1) % print_every_n_batches == 0:
+            if (batch_idx + 1) % print_every_n_batches == 0 or batch_idx == 0:
                 print(f"Epoch [{epoch+1}/{num_epochs}], "
                     f"Batch [{batch_idx+1}/{len(train_load)}], "
                     f"Loss: {running_loss / print_every_n_batches:.4f}")
@@ -263,6 +274,7 @@ def main():
                 validation_loss += loss.item()
             validation_loss /= len(validation_load)
             print(f'Validation Loss: {validation_loss:.4f}')
+            
 
         scheduler.step(validation_loss)
                     
@@ -274,6 +286,7 @@ def main():
             'validation_loss': validation_loss
         }, filename=f"checkpoint_epoch_{epoch+1}.pth.tar")
         show_images(lr_image.cpu(), hr_image.cpu(), sr_image.cpu(), epoch)
+        
 
         model.train()
         #scheduler.step()
