@@ -24,7 +24,7 @@ def process_images(image_dir, output_dir_hr, output_dir_lr):
 
 if __name__ == '__main__':
     current_directory = os.getcwd()
-    image_directory = os.path.join(current_directory, "DeepLesion")
+    image_directory = os.path.join(current_directory, "Mediastinum")
     output_directory_hr = os.path.join(current_directory, "ProcessedImages\\HR")
     output_directory_lr = os.path.join(current_directory, "ProcessedImages\\LR")
     process_images(image_directory, output_directory_hr, output_directory_lr)
