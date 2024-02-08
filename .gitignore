@@ -5,3 +5,5 @@ ProcessedImagesa/
 *.png
 *.tar
 Mediastinum.7z
+model_checkpoints/
+training_log.csv
