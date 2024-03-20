@@ -9,6 +9,7 @@ from keras.callbacks import Callback, ModelCheckpoint, LearningRateScheduler, CS
 from keras.models import Sequential
 from keras.layers import Conv2D, Conv2DTranspose, Activation, BatchNormalization, ReLU
 from keras.utils import load_img, img_to_array
+from keras.callbacks import EarlyStopping
 
 
 def gaussian_blur(image, kernel_size=5, sigma=1.0, probability=0.5):
@@ -63,10 +64,10 @@ class SISRCNN(tf.keras.Model):
         self.conv4 = Conv2D(32, kernel_size=3, padding='same', activation='relu')
         self.conv5 = Conv2D(32, kernel_size=3, padding='same', activation='relu')
         self.conv6 = Conv2D(32 * (self.scale_factor ** 2), kernel_size=3, padding='same')
-        self.conv7 = Conv2D(32, kernel_size=3, padding='same', activation='relu')
-        self.conv8 = Conv2D(32, kernel_size=3, padding='same', activation='relu')
-        self.conv9 = Conv2D(32, kernel_size=3, padding='same', activation='relu')
-        self.conv10 = Conv2D(1, kernel_size=3, padding='same')
+        self.conv7 = Conv2D(32, kernel_size=7, padding='same', activation='relu')
+        self.conv8 = Conv2D(32, kernel_size=7, padding='same', activation='relu')
+        self.conv9 = Conv2D(32, kernel_size=7, padding='same', activation='relu')
+        self.conv10 = Conv2D(1, kernel_size=7, padding='same')
 
     def call(self, x):
         x = self.f1_compute(x)
@@ -117,16 +118,16 @@ class SaveImage(Callback):
         self.num_images = num_images
         self.ksize = ksize
     
-    def apply_filters(self, image, median_ksize=3, unsharp_amount=1.5, unsharp_threshold=5):
+    def apply_filters(self, image, median_ksize=3, unsharp_amount=1.0, unsharp_threshold=5):
 
         for i in range(2):
             image = cv2.medianBlur(image, median_ksize)
         
         # Apply unsharp mask to enhance edges
-        gaussian_blurred = cv2.GaussianBlur(image, (0, 0), unsharp_threshold)
-        unsharp_image = cv2.addWeighted(image, unsharp_amount, gaussian_blurred, -0.5, 0)
+        # gaussian_blurred = cv2.GaussianBlur(image, (0, 0), unsharp_threshold)
+        # unsharp_image = cv2.addWeighted(image, unsharp_amount, gaussian_blurred, -0.5, 0)
 
-        return unsharp_image
+        return image
 
     # def apply_filters(self, image, median_ksize=3, bilateral_d=5, bilateral_sigmaColor=50, bilateral_sigmaSpace=50):
     #     # Apply median filter
@@ -154,7 +155,7 @@ class SaveImage(Callback):
                 sr_img = (sr_img * 255).astype('uint8')
 
                 # Apply median filter to SR image
-                filtered_sr_img = self.apply_filters(sr_img, median_ksize=3, unsharp_amount=1.5, unsharp_threshold=5)
+                filtered_sr_img = self.apply_filters(sr_img, median_ksize=3, unsharp_amount=1.0, unsharp_threshold=10)
                 #filtered_sr_img = self.apply_filters(sr_img, median_ksize=5, bilateral_d=9, bilateral_sigmaColor=75, bilateral_sigmaSpace=75)
                 #filtered_sr_img = self.apply_median_filter(sr_img)
 
@@ -186,7 +187,7 @@ def ssim_loss(y_true, y_pred):
     return 1 - tf.image.ssim(y_true, y_pred, max_val)
 
 def combined_loss(y_true, y_pred):
-    alpha = 0.6  # Weight for SSIM
+    alpha = 0.5  # Weight for SSIM
     mse_loss = tf.keras.losses.MeanSquaredError()(y_true, y_pred)
     ssim_loss_val = 1 - tf.image.ssim(y_true, y_pred, max_val=1.0)
 
@@ -198,7 +199,7 @@ def combined_loss(y_true, y_pred):
 
 
 def main():
-    epochs = 40
+    epochs = 400
     batch_size = 12
     learning_rate = 0.001
 
@@ -214,6 +215,8 @@ def main():
 
     lr_scheduler = LearningRateScheduler(scheduler)
     csv_logger = CSVLogger('training_log.csv', append=True, separator=';')
+
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, min_delta=0.001, restore_best_weights=True)
 
 
     model = SISRCNN()
@@ -231,7 +234,7 @@ def main():
                                  save_format='tf')  
     output_dir = './output_images'  
     save_images = SaveImage(model, dataset, output_dir)
-    model.fit(dataset, epochs=epochs, validation_data=val_dataset, callbacks=[save_images, checkpoint, lr_scheduler, csv_logger]) # , callbacks=[save_images]
+    model.fit(dataset, epochs=epochs, validation_data=val_dataset, callbacks=[save_images, checkpoint, lr_scheduler, csv_logger, early_stopping]) # , callbacks=[save_images]
 
 
 if __name__ == '__main__':
