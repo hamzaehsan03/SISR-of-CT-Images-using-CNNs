@@ -7,3 +7,4 @@ ProcessedImagesa/
 Mediastinum.7z
 model_checkpoints/
 training_log.csv
+*.h5
