@@ -10,6 +10,7 @@ PROGRAM FLOW:
 1. RUN THIS SCRIPT TO PROCESS THE IMAGES
 2. RUN IMAGE_SPLIT.PY TO SPLIT THE IMAGES INTO TRAINING, VALIDATION, AND TEST SETS
 3. RUN MODEL_TENSORFLOW_BETA.PY TO TRAIN THE MODEL
+4. USE UPSCALE_TEST.PY TO EVALUATE THE MODEL ON TEST IMAGES
 '''
 
 import os
@@ -38,7 +39,7 @@ def process_images(image_dir, output_dir_hr, output_dir_lr):
 
 if __name__ == '__main__':
     current_directory = os.getcwd()
-    image_directory = os.path.join(current_directory, "Mediastinum")
+    image_directory = os.path.join(current_directory, "Mediastinum") # Change this to the directory containing the images
     output_directory_hr = os.path.join(current_directory, "ProcessedImages\\HR")
     output_directory_lr = os.path.join(current_directory, "ProcessedImages\\LR")
     process_images(image_directory, output_directory_hr, output_directory_lr)
