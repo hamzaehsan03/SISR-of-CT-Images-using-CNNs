@@ -1,3 +1,17 @@
+'''
+DEPENDENCIES:
+PYTHON 3.8+
+TENSORFLOW 2.0+
+CUDNN 8100+
+CUDA 11.0+
+
+
+PROGRAM FLOW:
+1. RUN THIS SCRIPT TO PROCESS THE IMAGES
+2. RUN IMAGE_SPLIT.PY TO SPLIT THE IMAGES INTO TRAINING, VALIDATION, AND TEST SETS
+3. RUN MODEL_TENSORFLOW_BETA.PY TO TRAIN THE MODEL
+'''
+
 import os
 from process_image import save_process_image
 from preprocess_pipeline import process_folders

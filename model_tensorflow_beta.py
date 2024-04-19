@@ -6,8 +6,7 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from keras.callbacks import Callback, ModelCheckpoint, LearningRateScheduler, CSVLogger
-from keras.models import Sequential
-from keras.layers import Conv2D, Conv2DTranspose, Activation, BatchNormalization, ReLU
+from keras.layers import Conv2D, ReLU
 from keras.utils import load_img, img_to_array
 from keras.callbacks import EarlyStopping
 
@@ -193,10 +192,6 @@ def combined_loss(y_true, y_pred):
     ssim_loss_val = 1 - tf.image.ssim(y_true, y_pred, max_val=1.0)
 
     return beta * mse_loss + alpha * ssim_loss_val
-
-#     psnr_loss_val = -tf.image.psnr(y_true, y_pred, max_val=1.0)
-
-#     return mse_loss + alpha * ssim_loss_val + beta * psnr_loss_val
 
 
 def main():
